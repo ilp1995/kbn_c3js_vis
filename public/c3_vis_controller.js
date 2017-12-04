@@ -100,19 +100,34 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 		}
 
 		var bucket_type = $scope.vis.aggs.bySchemaName['buckets'][0].type.name;
+		//var bucket_type2 = $scope.vis.aggs.bySchemaName['buckets'][1].type.name;
 
 		// define the data to representate
-		if (parsed_data.length == 1) {
-			var total_data = {'x': 'x1', 'columns': [timeseries, parsed_data[0]]};
-		} else if (parsed_data.length == 2) {
-			var total_data = {'x': 'x1', 'columns': [timeseries, parsed_data[0], parsed_data[1]]};
-		} else if (parsed_data.length == 3) {
-			var total_data = {'x': 'x1', 'columns': [timeseries, parsed_data[0], parsed_data[1], parsed_data[2]]};
-		} else if (parsed_data.length == 4) {
-			var total_data = {'x': 'x1', 'columns': [timeseries, parsed_data[0], parsed_data[1], parsed_data[2], parsed_data[3]]};
+		if(bucket_type != "filters"){
+			console.log("Timeseries:");
+			console.log(timeseries);
+			console.log("Parsed Data");
+			console.log(parsed_data);
+			if (parsed_data.length == 1) {
+				var total_data = {'x': 'x1', 'columns': [timeseries, parsed_data[0]]};
+			} else if (parsed_data.length == 2) {
+				var total_data = {'x': 'x1', 'columns': [timeseries, parsed_data[0], parsed_data[1]]};
+			} else if (parsed_data.length == 3) {
+				var total_data = {'x': 'x1', 'columns': [timeseries, parsed_data[0], parsed_data[1], parsed_data[2]]};
+			} else if (parsed_data.length == 4) {
+				var total_data = {'x': 'x1', 'columns': [timeseries, parsed_data[0], parsed_data[1], parsed_data[2], parsed_data[3]]};
+			} else {
+				var total_data = {'x': 'x1', 'columns': [timeseries, parsed_data[0], parsed_data[1], parsed_data[2], parsed_data[3], parsed_data[4]]};
+			}
 		} else {
-			var total_data = {'x': 'x1', 'columns': [timeseries, parsed_data[0], parsed_data[1], parsed_data[2], parsed_data[3], parsed_data[4]]};
+			var total_data = {'x': 'x1', 
+							'columns':[
+								timeseries,
+								parsed_data
+							]
+							}
 		}
+		
 
 		// largest number possible in JavaScript.
 		var global_min = Number.MAX_VALUE;
@@ -219,22 +234,27 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 
 	// Get data from ES
 	$scope.processTableGroups = function (tableGroups) {
+		console.log(tableGroups);
+		//var bucket_type2 = $scope.vis.aggs.bySchemaName['buckets'][1].type.name;
 		tableGroups.tables.forEach(function (table) {
 			table.columns.forEach(function (column, i) {
 			
 				var data = table.rows;
 				var tmp = [];
 
-				for (var val in data){
-					tmp.push(data[val][i]);
+				for (var val in data){					
+					tmp.push(data[val][i]);					
 				}
 
 				if (i > 0){
 
 					$scope.$root.label_keys.push(column.title);
 					chart_labels[column.title] = column.title;
-					tmp.splice(0, 0, column.title);
+					tmp.splice(0, 0, column.title);					
 					parsed_data.push(tmp);
+					console.log("dado final");
+					console.log(parsed_data);
+					processFilter(parsed_data);
 			 
 				} else {
 			 
@@ -246,6 +266,34 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 
 		$scope.$root.editorParams.label = chart_labels;
 	};
+
+	function processFilter(parsedData){
+		var filtersItem = parsedData[0];
+		var values = parsedData[1];
+		var finalArray = [];		
+
+		var uniqueFilters = filtersItem.filter(function(elem, index, self) {
+			return index === self.indexOf(elem);
+		})
+
+		var indices = [];
+
+		for(var i = 0; i < uniqueFilters.length; i++){
+			var indices = [];
+			var tmp = [];
+			uniqueFilters.filter(function(array, index) {
+				if(array === uniqueFilters[i]){
+					indices.push(index);
+				}
+			});
+			for(var j = 0; j < indices.length; j++){
+				tmp.push(values[indices[j]]);
+			}
+			finalArray[i].push(tmp);
+		}
+		console.log("Depois do processamento: ");	
+		console.log(finalArray);
+	}
 		
 	$scope.$watch('esResponse', function(resp){
 		if (resp) {
@@ -263,8 +311,9 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 			$scope.processTableGroups(tabifyAggResponse($scope.vis, resp));
 
 			// avoid reference between arrays!!!
-			timeseries = x_axis_values[0].slice();   
+			timeseries = x_axis_values[0].slice();			
 			timeseries.splice(0,0,'x1');
+
 			$scope.chartGen();
 		}
 

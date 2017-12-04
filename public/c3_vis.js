@@ -59,7 +59,7 @@ function c3VisProvider(Private) {
                 name: 'buckets',
                 title: 'X-Axis',
                 min: 1,
-                max: 1,
+                max: 2,
                 aggFilter: ['!geohash_grid']
             }
 	    ])
