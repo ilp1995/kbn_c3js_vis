@@ -22,6 +22,7 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 	var chart_labels = {};
 	var x_label = "";
 	var time_format = "";
+	var bucket_type2 = "";
 
 	// Identify the div element in the HTML
 	var idchart = $element.children().find(".chartc3");
@@ -100,14 +101,11 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 		}
 
 		var bucket_type = $scope.vis.aggs.bySchemaName['buckets'][0].type.name;
-		//var bucket_type2 = $scope.vis.aggs.bySchemaName['buckets'][1].type.name;
+		if($scope.vis.aggs.bySchemaName['buckets'][1] != undefined)
+			var bucket_type2 = $scope.vis.aggs.bySchemaName['buckets'][1].type.name;
 
 		// define the data to representate
-		if(bucket_type != "filters"){
-			console.log("Timeseries:");
-			console.log(timeseries);
-			console.log("Parsed Data");
-			console.log(parsed_data);
+		if(bucket_type2 == undefined){			
 			if (parsed_data.length == 1) {
 				var total_data = {'x': 'x1', 'columns': [timeseries, parsed_data[0]]};
 			} else if (parsed_data.length == 2) {
@@ -120,10 +118,11 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 				var total_data = {'x': 'x1', 'columns': [timeseries, parsed_data[0], parsed_data[1], parsed_data[2], parsed_data[3], parsed_data[4]]};
 			}
 		} else {
+
 			var total_data = {'x': 'x1', 
 							'columns':[
 								timeseries,
-								parsed_data
+								parsed_data[0], parsed_data[1], parsed_data[2], parsed_data[3], parsed_data[4]
 							]
 							}
 		}
@@ -150,7 +149,13 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 		var config = {};
 		config.bindto = idchart[0];
 		config.data = total_data;
-		config.data.types = data_types;
+		
+		if(bucket_type2 == undefined){
+			config.data.types = data_types;
+		} else{
+			config.data.type = 'bar';
+		}
+	
 		config.data.colors = data_colors;
 		config.data.labels = $scope.vis.params.dataLabels;
 		config.legend = {"position": $scope.vis.params.legend_position};
@@ -183,15 +188,16 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 
 		// category data config
 		} else {
-
+			
 			config.axis = {"x": {"label": {"text": x_label, "position": 'outer-center'}, "type":"category", "tick": {"multiline": false}}, "y": {"min": global_min, "padding": {"top": 30, "bottom": 1 }}};
-
+			
 			if (timeseries.length-1 > 13 && $scope.vis.params.few_x_axis){
 				config.axis = {"x": {"label": {"text": x_label, "position": 'outer-center'}, "type":"category", "tick": {"fit": false, "multiline": false, "culling": {"max": 10}}}, "y": {"min": global_min, "padding": {"top": 30, "bottom": 1 }}};
 			}
+		
 		}
-
-
+		console.log("configuracao chart");
+		console.log(config);
 		// Group bar charts, we need 2+ bar charts and checked checkbox in params
 		if ($scope.$root.activate_grouped && $scope.vis.params.grouped){
 
@@ -235,7 +241,7 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 	// Get data from ES
 	$scope.processTableGroups = function (tableGroups) {
 		console.log(tableGroups);
-		//var bucket_type2 = $scope.vis.aggs.bySchemaName['buckets'][1].type.name;
+		
 		tableGroups.tables.forEach(function (table) {
 			table.columns.forEach(function (column, i) {
 			
@@ -251,10 +257,8 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 					$scope.$root.label_keys.push(column.title);
 					chart_labels[column.title] = column.title;
 					tmp.splice(0, 0, column.title);					
-					parsed_data.push(tmp);
-					console.log("dado final");
-					console.log(parsed_data);
-					processFilter(parsed_data);
+					parsed_data.push(tmp);					
+					
 			 
 				} else {
 			 
@@ -263,36 +267,51 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 				}
 			});
 		});
+		
+		if($scope.vis.aggs.bySchemaName['buckets'][1] != undefined)
+			parsed_data = processFilter(parsed_data);		
 
 		$scope.$root.editorParams.label = chart_labels;
 	};
 
 	function processFilter(parsedData){
 		var filtersItem = parsedData[0];
+		filtersItem.shift();		
 		var values = parsedData[1];
+		values.shift();		
 		var finalArray = [];		
 
 		var uniqueFilters = filtersItem.filter(function(elem, index, self) {
 			return index === self.indexOf(elem);
 		})
 
-		var indices = [];
-
 		for(var i = 0; i < uniqueFilters.length; i++){
 			var indices = [];
 			var tmp = [];
-			uniqueFilters.filter(function(array, index) {
-				if(array === uniqueFilters[i]){
-					indices.push(index);
-				}
-			});
+			indices = getIndices(filtersItem, uniqueFilters[i]);
+			
 			for(var j = 0; j < indices.length; j++){
-				tmp.push(values[indices[j]]);
+				tmp.push(values[indices[j]]);				
 			}
-			finalArray[i].push(tmp);
+			tmp.splice(0,0,uniqueFilters[i]);
+			finalArray.push(tmp);
 		}
 		console.log("Depois do processamento: ");	
-		console.log(finalArray);
+		console.log(finalArray);		
+
+		return finalArray;
+	}
+
+	function getIndices(array, key){
+		var indices = [];	
+						
+		array.filter(function(arr, index) {
+			if(arr === key){
+			indices.push(index)
+			}
+		});	
+
+		return indices;
 	}
 		
 	$scope.$watch('esResponse', function(resp){
@@ -309,10 +328,19 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 			chart_labels = {};
 			$scope.$root.label_keys = [];
 			$scope.processTableGroups(tabifyAggResponse($scope.vis, resp));
-
+			
 			// avoid reference between arrays!!!
-			timeseries = x_axis_values[0].slice();			
+			timeseries = x_axis_values[0].slice();
+			
+			if($scope.vis.aggs.bySchemaName['buckets'][1] != undefined){
+				timeseries = timeseries.filter(function(elem, index, self) {
+					return index === self.indexOf(elem);
+				})	
+			}
+					
 			timeseries.splice(0,0,'x1');
+			console.log("Timeseries");
+			console.log(timeseries);
 
 			$scope.chartGen();
 		}
