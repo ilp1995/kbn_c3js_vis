@@ -45,18 +45,21 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 		// change bool value
 		$scope.$root.show_chart = true;
 
+		// adding title
+		$scope.chart_title = $scope.vis.params.chart_title;
+
 		//create data_colors object
 		var the_labels = Object.keys(chart_labels);
 		var data_colors = {};
 		var data_types = {};
 		var i = 0;
 		var create_color_object = the_labels.map(function(chart){
+			
 			if (i == 0){
 				data_colors[chart] = $scope.vis.params.color1;
 				data_types[chart] = $scope.vis.params.type1;
 			
-			} else if (i == 1){
-			
+			} else if (i == 1){			
 				data_colors[chart] = $scope.vis.params.color2;
 				data_types[chart] = $scope.vis.params.type2;
 			
@@ -118,13 +121,24 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 				var total_data = {'x': 'x1', 'columns': [timeseries, parsed_data[0], parsed_data[1], parsed_data[2], parsed_data[3], parsed_data[4]]};
 			}
 		} else {
+			// prepare the columns in the correct format (n filters)
+			var total_data = {
+					'x': 'x1', 
+					'columns':[
+						timeseries, 								
+					]}
 
-			var total_data = {'x': 'x1', 
-							'columns':[
-								timeseries,
-								parsed_data[0], parsed_data[1], parsed_data[2], parsed_data[3], parsed_data[4]
-							]
-							}
+			var total_data_str = JSON.stringify(total_data);
+			var parsed_data_str = JSON.stringify(parsed_data);			
+			total_data_str = total_data_str.slice(0, -2);			
+			
+			if(parsed_data_str.charAt(0) === '['){
+				parsed_data_str = parsed_data_str.slice(1);
+				parsed_data_str = parsed_data_str.slice(0, -1);
+			}
+			
+			total_data_str = total_data_str + ', ' + parsed_data_str + ']}';			
+			total_data = JSON.parse(total_data_str);			
 		}
 		
 
@@ -149,11 +163,30 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 		var config = {};
 		config.bindto = idchart[0];
 		config.data = total_data;
+		config.data.types = data_types;
+		console.log("Data types");
+		console.log(data_types);
 		
-		if(bucket_type2 == undefined){
-			config.data.types = data_types;
-		} else{
-			config.data.type = 'bar';
+		if(bucket_type2 != undefined){
+			let filters_name = data_types.filters;			
+			var newType_tmp = changeChartType(parsed_data, filters_name);
+			var newType	= newType_tmp.slice(0, -1);
+
+			newType = "{" + newType.slice(0, -1) + "}";
+		
+			var format_obj = JSON.parse(newType);	
+			
+			//delete data duplicated
+			for(var key in format_obj){
+				for(var key2 in data_types){					
+					if(key === key2){						
+						delete format_obj[key]
+					}
+				}				
+			}
+			var newDataTypes = Object.assign({}, data_types, format_obj);
+			config.data.types = newDataTypes;
+			console.log(format_obj);			
 		}
 	
 		config.data.colors = data_colors;
@@ -237,6 +270,26 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 
 	};
 
+	// changes chart types
+	function changeChartType(parsedData, type){
+		var chart_types_str = '';
+		var names = getNamesData(parsedData);
+		
+		for(var i = 0; i < names.length; i++){
+			chart_types_str = chart_types_str + '"' + names[i] + '": "' + type + '", ';
+		}
+		return chart_types_str;
+	}
+
+	// get all data's names
+	function getNamesData(data) {
+		var dataNames = [];
+		for(var i = 0; i < data.length; i++){
+			var data_tmp = data[i];
+			dataNames.push(data_tmp[0]);
+		}
+		return dataNames;
+	}
 
 	// Get data from ES
 	$scope.processTableGroups = function (tableGroups) {
@@ -267,6 +320,8 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 				}
 			});
 		});
+
+		console.log(parsed_data);
 		
 		if($scope.vis.aggs.bySchemaName['buckets'][1] != undefined)
 			parsed_data = processFilter(parsed_data);		
@@ -274,6 +329,7 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 		$scope.$root.editorParams.label = chart_labels;
 	};
 
+	// get array to generate chart with filters
 	function processFilter(parsedData){
 		var filtersItem = parsedData[0];
 		filtersItem.shift();		
@@ -296,22 +352,50 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 			tmp.splice(0,0,uniqueFilters[i]);
 			finalArray.push(tmp);
 		}
-		console.log("Depois do processamento: ");	
-		console.log(finalArray);		
+
+		var thresholds = getThresholds(parsedData);		
+		finalArray = finalArray.concat(thresholds);	
 
 		return finalArray;
 	}
 
+	//get indices from array that has duplicated elements
 	function getIndices(array, key){
 		var indices = [];	
 						
 		array.filter(function(arr, index) {
 			if(arr === key){
-			indices.push(index)
+				indices.push(index)
 			}
 		});	
 
 		return indices;
+	}
+	
+	//get thresholds in chart with filters
+	function getThresholds(parsedData) {
+
+		var thresholds = [];
+		var timeseries_tmp = x_axis_values[0].slice();
+		timeseries_tmp = timeseries_tmp.filter(function(elem, index, self) {
+			return index === self.indexOf(elem);
+		})
+		
+		for(var i = 2; i < parsedData.length; i++){
+			var tmp = parsedData[i];		
+			var max_of_array = Math.max.apply(Math, tmp.slice(1));
+			var tmp2 = [];
+			for(var j = 0; j <= timeseries_tmp.length; j++){
+				if(j == 0){
+					tmp2.push(tmp[0]);
+				} else{
+					tmp2.push(max_of_array);
+				}													
+			}								
+			thresholds.push(tmp2);
+			
+		}
+		return thresholds;
 	}
 		
 	$scope.$watch('esResponse', function(resp){
@@ -326,9 +410,9 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 			timeseries.length = 0;
 			parsed_data.length = 0;
 			chart_labels = {};
-			$scope.$root.label_keys = [];
+			$scope.$root.label_keys = [];	
 			$scope.processTableGroups(tabifyAggResponse($scope.vis, resp));
-			
+
 			// avoid reference between arrays!!!
 			timeseries = x_axis_values[0].slice();
 			
@@ -337,11 +421,9 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 					return index === self.indexOf(elem);
 				})	
 			}
-					
-			timeseries.splice(0,0,'x1');
-			console.log("Timeseries");
-			console.log(timeseries);
 
+			timeseries.splice(0,0,'x1');
+			
 			$scope.chartGen();
 		}
 

@@ -49,7 +49,7 @@ function c3VisProvider(Private) {
             {
 	        	group: 'metrics',
 	          	name: 'metric',
-	          	title: 'Y-axis metric',
+	          	title: 'Y-Axis Metric',
 	          	min: 1,
 	          	max: 5,
               defaults: [ { type: 'count', schema: 'metric' } ],   	
@@ -60,7 +60,7 @@ function c3VisProvider(Private) {
                 title: 'X-Axis',
                 min: 1,
                 max: 2,
-                aggFilter: ['!geohash_grid']
+                aggFilter: ['filters', 'terms']
             }
 	    ])
     });
