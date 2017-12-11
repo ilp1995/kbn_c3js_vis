@@ -26,7 +26,7 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 
 	// Identify the div element in the HTML
 	var idchart = $element.children().find(".chartc3");
-	const message = 'This chart require more than one data point. Try adding an X-Axis Aggregation.';
+	const message = 'This chart require more than one data point. Try adding an X-Axis Aggregation. If you to use filters put labels in each filter.';
 
 
 	// Be alert to changes in vis_params
@@ -173,8 +173,13 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 			var newType	= newType_tmp.slice(0, -1);
 
 			newType = "{" + newType.slice(0, -1) + "}";
-		
-			var format_obj = JSON.parse(newType);	
+						
+			try {
+				$scope.chart_error = ""; 
+				var format_obj = JSON.parse(newType);
+			} catch(e){
+				$scope.chart_error = "Error! Try to put a label in each filter."
+			}	
 			
 			//delete data duplicated
 			for(var key in format_obj){
