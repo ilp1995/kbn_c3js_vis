@@ -1,8 +1,8 @@
-<div ng-controller="KbnC3VisController" class="c3-vis">
-	<div ng-if="chart_error != ''" style="font-size: 10px; font-weight: bold; color: red;">{{chart_error}}<br></div>
+<div ng-controller="KbnC3VisController" class="c3-vis">	
 	<div ng-if="chart_title != ''" style="font-size: 20px; font-weight: bold;">{{chart_title}}</div>	
 	<div class="c3-container">
 		<div class="chartc3"></div>
 		<div class="text-center" ng-hide="$root.show_chart"><h4>{{ waiting }}</h4></div>
 	</div>
+	<div ng-if="chart_error != ''" style="font-size: 10px; font-weight: bold; color: red;">{{chart_error}}<br></div>
 </div>
