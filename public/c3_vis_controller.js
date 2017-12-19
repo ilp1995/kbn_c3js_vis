@@ -306,22 +306,27 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 				var data = table.rows;
 				var tmp = [];
 
-				for (var val in data){					
-					tmp.push(data[val][i]);					
+				for (var val in data){
+					var aux = data[val][i];					
+					if(typeof(aux) === 'number'){
+						var aux2 = parseFloat(Math.round(aux * 100) / 100).toFixed(1);
+						tmp.push(aux2);	
+					} else{
+						tmp.push(aux);	
+					}								
 				}
 
 				if (i > 0){
 
 					$scope.$root.label_keys.push(column.title);
 					chart_labels[column.title] = column.title;
-					tmp.splice(0, 0, column.title);					
-					parsed_data.push(tmp);					
+					tmp.splice(0, 0, column.title);							
+					parsed_data.push(tmp);															
 					
-			 
 				} else {
 			 
 					x_label = column.title;
-					x_axis_values.push(tmp);
+					x_axis_values.push(tmp);					
 				}
 			});
 		});
