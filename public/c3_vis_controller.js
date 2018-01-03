@@ -49,7 +49,7 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 		$scope.chart_title = $scope.vis.params.chart_title;
 
 		//create data_colors object
-		var the_labels = Object.keys(chart_labels);
+		var the_labels = Object.keys(chart_labels);		
 		var data_colors = {};
 		var data_types = {};
 		var i = 0;
@@ -164,8 +164,6 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 		config.bindto = idchart[0];
 		config.data = total_data;
 		config.data.types = data_types;
-		console.log("Data types");
-		console.log(data_types);
 		
 		if(bucket_type2 != undefined){
 			let filters_name = data_types.filters;			
@@ -190,12 +188,30 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 				}				
 			}
 			var newDataTypes = Object.assign({}, data_types, format_obj);
-			config.data.types = newDataTypes;
-			console.log(format_obj);			
+			config.data.types = newDataTypes;						
 		}
 	
 		config.data.colors = data_colors;
-		config.data.labels = $scope.vis.params.dataLabels;
+		if($scope.vis.params.has_threshold){
+			var labels_aux = { format: null};
+			var format = {};
+			var labels_to_hide = $scope.vis.params.threshold_label.split(",");
+			
+			for(var i = 0; i < the_labels.length; i++){					
+				if(labels_to_hide.indexOf(the_labels[i]) > -1){
+					format[the_labels[i]] =  function(v, id, i, j) { return '';}
+				} else{
+					format[the_labels[i]] =  function(v, id, i, j) { return v;}	
+				}							
+			}
+	
+			labels_aux.format = format;				
+			config.data.labels = labels_aux;
+			
+		} else{
+			config.data.labels = $scope.vis.params.dataLabels;
+		}
+		
 		config.legend = {"position": $scope.vis.params.legend_position};
 
 		// timeseries config
@@ -233,9 +249,8 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 				config.axis = {"x": {"label": {"text": x_label, "position": 'outer-center'}, "type":"category", "tick": {"fit": false, "multiline": false, "culling": {"max": 10}}}, "y": {"min": global_min, "padding": {"top": 30, "bottom": 1 }}};
 			}
 		
-		}
-		console.log("configuracao chart");
-		console.log(config);
+		}	
+		console.log(config);	
 		// Group bar charts, we need 2+ bar charts and checked checkbox in params
 		if ($scope.$root.activate_grouped && $scope.vis.params.grouped){
 
