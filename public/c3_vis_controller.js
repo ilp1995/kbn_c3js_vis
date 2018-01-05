@@ -233,7 +233,7 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 			} else {
 				time_format = "%H:%M";
 			}
-			getThresholds
+			
 			var bool_fit = false;
 			bool_fit = (timeseries.length < 4) ? bool_fit = true : bool_fit = false;
 
