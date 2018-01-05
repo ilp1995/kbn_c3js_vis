@@ -196,13 +196,17 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 			var labels_aux = { format: null};
 			var format = {};
 			var labels_to_hide = $scope.vis.params.threshold_label.split(",");
+
+			console.log(the_labels);
 			
-			for(var i = 0; i < the_labels.length; i++){					
-				if(labels_to_hide.indexOf(the_labels[i]) > -1){
-					format[the_labels[i]] =  function(v, id, i, j) { return '';}
-				} else{
-					format[the_labels[i]] =  function(v, id, i, j) { return v;}	
-				}							
+			for(var i = 0; i < the_labels.length; i++){
+				if(the_labels[i] !== "filters"){					
+					if(labels_to_hide.indexOf(the_labels[i]) > -1){
+						format[the_labels[i]] =  function(v, id, i, j) { return '';}
+					} else{
+						format[the_labels[i]] =  function(v, id, i, j) { return v;}	
+					}
+				}						
 			}
 	
 			labels_aux.format = format;				
@@ -229,7 +233,7 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 			} else {
 				time_format = "%H:%M";
 			}
-
+			getThresholds
 			var bool_fit = false;
 			bool_fit = (timeseries.length < 4) ? bool_fit = true : bool_fit = false;
 
