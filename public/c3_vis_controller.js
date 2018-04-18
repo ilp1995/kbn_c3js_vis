@@ -1,6 +1,10 @@
-import uiModules from 'ui/modules';
-import AggResponseTabifyTabifyProvider from 'ui/agg_response/tabify/tabify';
-import errors from 'ui/errors'; 
+import { uiModules } from 'ui/modules';
+import _ from 'lodash';
+
+import { AggResponseTabifyProvider } from 'ui/agg_response/tabify/tabify';
+import { RegistryFieldFormatsProvider } from 'ui/registry/field_formats';
+import { VisAggConfigProvider } from 'ui/vis/agg_config';
+import AggConfigResult from 'ui/vis/agg_config_result';
 
 // get the kibana/table_vis module, and make sure that it requires the "kibana" module if it didn't already
 const module = uiModules.get('kibana/c3_vis', ['kibana']);
@@ -10,12 +14,17 @@ const c3 = require('c3');
 
 module.controller('KbnC3VisController', function($scope, $element, Private){
 
+	const tabifyAggResponse = Private(AggResponseTabifyProvider);
+    const AggConfig = Private(VisAggConfigProvider);
+    const fieldFormats = Private(RegistryFieldFormatsProvider);
+    const getConfig = (...args) => config.get(...args);
+
 	var hold ="";
 	var wold= "";
 	$scope.$root.label_keys = [];
 	$scope.$root.editorParams = {};
 	$scope.$root.activate_grouped = false;
-	const tabifyAggResponse = Private(AggResponseTabifyTabifyProvider);
+	//const tabifyAggResponse = Private(AggResponseTabifyTabifyProvider);
 	var x_axis_values = [];
 	var timeseries = [];
 	var parsed_data = [];
@@ -439,8 +448,11 @@ module.controller('KbnC3VisController', function($scope, $element, Private){
 			timeseries.length = 0;
 			parsed_data.length = 0;
 			chart_labels = {};
-			$scope.$root.label_keys = [];	
-			$scope.processTableGroups(tabifyAggResponse($scope.vis, resp));
+			$scope.$root.label_keys = [];
+			const vis = $scope.vis;	
+			const params = vis.params;
+			$scope.processTableGroups(resp);
+			//$scope.processTableGroups(tabifyAggResponse($scope.vis, resp));
 
 			// avoid reference between arrays!!!
 			timeseries = x_axis_values[0].slice();
