@@ -1,7 +1,7 @@
-# C3JS Visualizations Plugin for Kibana 5 
+# C3JS Visualizations Plugin for Kibana 6 
 
 ### About
-This is a plugin for Kibana5+. Has been developed and tested on Kibana 5.0.0-rc-1 and 5.1.0 version. The plugin uses C3JS library (D3-based charts).
+This is a plugin for Kibana6+. Has been developed and tested on Kibana 5.3.0 and 6.2.3 version. The plugin uses C3JS library (D3-based charts).
 
 ![Screenshot](images/img1.jpg)
 
